@@ -51,11 +51,11 @@ app/src/main/java/com/bruincafe/app/
 ```
 
 Screen IDs (S-01..S-09) match the Screen Inventory table in the Deliverable 2
-Word doc, and the file names match the boxes in the Navigation Map diagram —
+Word doc, and the file names should match the boxes in the Navigation Map diagram —
 so the diagram, the requirements doc, and the code all point at the same
 vocabulary.
 
-## What's implemented
+## What's implemented so  far (subject to change)
 
 - **Location selection** scopes every later screen (WLM-01).
 - **Weekly lunch menu**, grouped by weekday, with a themed multi-item day
@@ -83,39 +83,26 @@ vocabulary.
    Let it sync Gradle — this project uses standard AndroidX + Jetpack
    Compose dependencies, no custom repositories.
 2. Run on any emulator or device with **API 26+**.
-3. **Compilation status:** the real Android/Jetpack Compose libraries come
-   from Google's Maven repository, which wasn't reachable from the sandbox
-   this was built in, so a full Android Studio build could not be run here.
-   What *was* verified: the actual Kotlin compiler (`kotlinc` 1.9.24) was run
-   against every source file in this project as one module. With the
-   Android/Compose/Navigation libraries unavailable, `androidx.*` symbols
-   understandably came back "unresolved reference" — but that check also
-   confirmed there are **no syntax errors** and **every cross-file reference
-   between our own classes resolves correctly** (ViewModel ↔ Repository ↔
-   Models ↔ screens ↔ nav graph all line up). It also caught one real bug —
-   a `return@Scaffold` inside a nested `Column` block in `CheckoutScreen.kt`,
-   which Kotlin doesn't allow across a non-inline lambda boundary — now fixed
-   with a plain if/else instead. Still budget a first Gradle sync in Android
-   Studio to catch anything only the real Compose type-checker would see
-   (e.g. exact parameter names/overloads on library functions).
+   
+## Making it "easily changeable" (emphasis on the "easily")
 
-## Making it "easily changeable"
-
-Two files are meant to be the main edit points:
+Two files are meant to be the main edit points anything else is a edit / explore at your OWN RISK***:
 
 - **`data/MockData.kt`** — every menu item, weekday, closure message, and
-  inventory quantity lives here as plain Kotlin data, shaped exactly like the
-  Supabase table columns. Add a day, add an item, change a quantity — nothing
+  inventory quantity lives here as plain Kotlin data, shaped exactly like my
+  Supabase table columns (A facsimile of it). Add a day, add an item, change a quantity — nothing
   else needs to change.
 - **`ui/theme/Color.kt`** — every screen pulls its palette from here via
   `MaterialTheme.colorScheme`. Change five hex values, the whole app reskins.
 
-When the real Supabase backend is ready, `CafeRepository.kt` is the only
-other file that should need real changes: replace its function bodies with
+When the actual Supabase backend is ready, `CafeRepository.kt` is the only
+other file that should need real changes (that means do not touch anything else): replace its function bodies with
 network calls that return the same types, and every screen above it keeps
 working unmodified — screens never talk to `MockData` directly.
 
-## Suggested next steps
+
+
+## Suggested next steps for my fellow devs
 
 - Wire `CafeRepository` to the actual Supabase table via the Supabase Kotlin
   client (`supabase-kt`), matching the columns already used in `Models.kt`.
@@ -123,3 +110,6 @@ working unmodified — screens never talk to `MockData` directly.
   a live weekly menu is being published on a rolling basis.
 - Add persistence for the cart and staff session (currently in-memory only,
   resets on process death) via DataStore.
+- Tweak the screen UI to be less redundant.
+- Add the logos and other images.
+- Add other stuff.
