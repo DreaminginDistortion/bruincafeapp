@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -26,6 +27,7 @@ import com.bruincafe.app.data.InventoryItem
 import com.bruincafe.app.ui.theme.CafeGreen
 
 /** Screen S-09: Restock Simulation. Staff enter a quantity and confirm; inventory updates live. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RestockSimulationScreen(
     item: InventoryItem,

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.bruincafe.app.ui.theme.CafeError
 
 /** Screen S-07: Staff Login. Mock auth -- any username in MockData.staffUsernames + any password. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StaffLoginScreen(
     onLogin: (String, String) -> Boolean,
