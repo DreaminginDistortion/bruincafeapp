@@ -74,7 +74,10 @@ fun WeeklyMenuScreen(
             // week (Sept 7-11, 2026) may not equal the device's real today.
             Surface(color = CafeCream) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Simulated \"Today\" (demo control)", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = "Simulated \"Today\" (demo control)",
+                        style = MaterialTheme.typography.labelMedium
+                    )
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(allDates) { (date, dow) ->
                             val selected = date == simulatedDate
@@ -107,12 +110,15 @@ fun WeeklyMenuScreen(
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Text(
-                                    "Today's Special",
+                                    text = "Today's Special",
                                     color = androidx.compose.ui.graphics.Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
                                 todaysSpecials.forEach {
-                                    Text(it.name, color = androidx.compose.ui.graphics.Color.White)
+                                    Text(
+                                        text = it.name,
+                                        color = androidx.compose.ui.graphics.Color.White
+                                    )
                                 }
                             }
                         }
@@ -124,7 +130,10 @@ fun WeeklyMenuScreen(
                         SectionLabel("Ready-Made Breakfast (HQ Only)")
                     }
                     items(breakfastItems) { item ->
-                        MenuItemCard(item = item, onClick = { onItemClick(item) })
+                        MenuItemCard(
+                            item = item,
+                            onClick = { onItemClick(item) }
+                        )
                     }
                 }
 
@@ -139,7 +148,7 @@ fun WeeklyMenuScreen(
                 when {
                     day == null -> item {
                         Text(
-                            "Menu Unavailable for this date.",
+                            text = "Menu Unavailable for this date.",
                             color = CafeError,
                             modifier = Modifier.padding(vertical = 24.dp)
                         )
@@ -195,7 +204,11 @@ private fun MenuItemCard(item: MenuItem, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = item.name,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
                 StockBadge(status)
             }
             Text(
@@ -205,7 +218,9 @@ private fun MenuItemCard(item: MenuItem, onClick: () -> Unit) {
                 modifier = Modifier.padding(top = 4.dp)
             )
             Text(
-                text = item.course.name.lowercase().replaceFirstChar { it.uppercase() },
+                text = item.course.name
+                    .lowercase()
+                    .replaceFirstChar { it.uppercase() },
                 style = MaterialTheme.typography.labelSmall,
                 color = CafeGold,
                 modifier = Modifier.padding(top = 4.dp)

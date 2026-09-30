@@ -32,11 +32,19 @@ fun CartScreen(
     onCheckout: () -> Unit,
     onKeepBrowsing: () -> Unit
 ) {
-    Scaffold(topBar = { TopAppBar(title = { Text("Your Cart") }) }) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Your Cart") })
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
             if (cart.isEmpty()) {
                 Text(
-                    "Your cart is empty.",
+                    text = "Your cart is empty.",
                     modifier = Modifier.padding(24.dp)
                 )
             } else {
@@ -45,15 +53,27 @@ fun CartScreen(
                     contentPadding = PaddingValues(16.dp)
                 ) {
                     items(cart) { line ->
-                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text(line.item.name, style = MaterialTheme.typography.titleMedium)
-                                    Text("Qty: ${line.quantity}", style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        text = line.item.name,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = "Qty: ${line.quantity}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                                 OutlinedButton(onClick = { onRemove(line.item.id) }) {
                                     Text("Remove")
@@ -72,7 +92,12 @@ fun CartScreen(
                 ) {
                     Text("Checkout")
                 }
-                OutlinedButton(onClick = onKeepBrowsing, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                OutlinedButton(
+                    onClick = onKeepBrowsing,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
                     Text("Keep Browsing Menu")
                 }
             }

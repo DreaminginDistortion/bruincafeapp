@@ -40,12 +40,15 @@ fun ItemDetailScreen(
             StockBadge(status)
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = item.course.name.lowercase().replaceFirstChar { it.uppercase() },
+                text = item.course.name
+                    .lowercase()
+                    .replaceFirstChar { it.uppercase() },
                 style = MaterialTheme.typography.labelLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = item.description.ifBlank { "Details coming soon." },
+                text = item.description
+                    .ifBlank { "Details coming soon." },
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(8.dp))

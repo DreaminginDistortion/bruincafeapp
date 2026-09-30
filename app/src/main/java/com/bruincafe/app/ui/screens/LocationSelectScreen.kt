@@ -28,7 +28,11 @@ fun LocationSelectScreen(
     onLocationChosen: (CafeLocation) -> Unit
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Choose a Location") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Choose a Location") }
+            )
+        }
     ) { padding ->
         LazyColumn(
             contentPadding = PaddingValues(16.dp),

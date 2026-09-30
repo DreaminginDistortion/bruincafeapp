@@ -34,10 +34,16 @@ fun StaffLoginScreen(
     var password by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Staff Login") }) }) { padding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Staff Login") }
+            )
+        }
+    ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp)) {
             Text(
-                "Demo accounts: staff / manager / hq_admin (any password)",
+                text = "Demo accounts: staff / manager / hq_admin (any password)",
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -56,7 +62,11 @@ fun StaffLoginScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             error?.let {
-                Text(it, color = CafeError, modifier = Modifier.padding(top = 8.dp))
+                Text(
+                    text = it,
+                    color = CafeError,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
             Spacer(modifier = Modifier.height(20.dp))
             Button(
@@ -65,9 +75,7 @@ fun StaffLoginScreen(
                     else error = "Login failed. Try one of the demo accounts above."
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Log In")
-            }
+            ) { Text("Log In") }
         }
     }
 }

@@ -62,20 +62,29 @@ class CafeViewModel : ViewModel() {
     }
 
     fun removeFromCart(itemId: String) {
-        _uiState.update { state -> state.copy(cart = state.cart.filter { it.item.id != itemId }) }
+        _uiState.update { state ->
+            state.copy(cart = state.cart.filter { it.item.id != itemId })
+        }
     }
 
     fun placeOrder() {
         val lines = _uiState.value.cart
         val success = CafeRepository.placeMockOrder(lines)
         _uiState.update {
-            if (success) it.copy(cart = emptyList(), lastOrderConfirmed = true, lastOrderError = null)
+            if (success) it.copy(
+                cart = emptyList(),
+                lastOrderConfirmed = true,
+                lastOrderError = null
+            )
             else it.copy(lastOrderError = "One or more items sold out while you were ordering. Please review your cart.")
         }
     }
 
     fun clearOrderConfirmation() {
-        _uiState.update { it.copy(lastOrderConfirmed = false, lastOrderError = null) }
+        _uiState.update { it.copy(
+            lastOrderConfirmed = false,
+            lastOrderError = null
+        ) }
     }
 
     fun staffLogin(username: String, password: String): Boolean {
