@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -30,6 +31,7 @@ import com.bruincafe.app.ui.theme.CafeGoldLight
 import com.bruincafe.app.ui.theme.CafeGreen
 
 /** Screen S-08: Inventory Dashboard. Staff view inventory per location, with low-stock alerts. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryDashboardScreen(
     locations: List<CafeLocation>,
@@ -43,7 +45,9 @@ fun InventoryDashboardScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Inventory — Staff") },
-                actions = { TextButton(onClick = onLogout) { Text("Log Out") } }
+                actions = {
+                    TextButton(onClick = onLogout) { Text("Log Out") }
+                }
             )
         }
     ) { padding ->
@@ -60,7 +64,7 @@ fun InventoryDashboardScreen(
                         modifier = Modifier.clickable { onLocationChange(loc.id) }
                     ) {
                         Text(
-                            loc.displayName,
+                            text = loc.displayName,
                             color = if (selected) androidx.compose.ui.graphics.Color.White else CafeGold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
@@ -73,7 +77,7 @@ fun InventoryDashboardScreen(
             }
             if (lowStockCount > 0) {
                 Text(
-                    "$lowStockCount item(s) need attention (low stock or sold out)",
+                    text = "$lowStockCount item(s) need attention (low stock or sold out)",
                     color = CafeGold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
@@ -88,14 +92,19 @@ fun InventoryDashboardScreen(
                             .clickable { onSelectItemToRestock(row) }
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text(row.itemName, fontWeight = FontWeight.Bold)
                                 Text(
-                                    "${row.quantityOnHand} on hand · threshold ${row.lowStockThreshold}",
+                                    text = row.itemName,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${row.quantityOnHand} on hand · threshold ${row.lowStockThreshold}",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }

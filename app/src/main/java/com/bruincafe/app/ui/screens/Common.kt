@@ -43,5 +43,8 @@ fun StockBadge(status: StockStatus, modifier: Modifier = Modifier) {
 
 @Composable
 fun SectionLabel(text: String) {
-    Text(text = text, style = MaterialTheme.typography.titleMedium)
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium
+    )
 }

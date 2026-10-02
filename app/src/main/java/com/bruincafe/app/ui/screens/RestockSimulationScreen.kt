@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -26,6 +27,7 @@ import com.bruincafe.app.data.InventoryItem
 import com.bruincafe.app.ui.theme.CafeGreen
 
 /** Screen S-09: Restock Simulation. Staff enter a quantity and confirm; inventory updates live. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RestockSimulationScreen(
     item: InventoryItem,
@@ -36,18 +38,38 @@ fun RestockSimulationScreen(
     var addQty by remember { mutableStateOf(10) }
     var justConfirmed by remember { mutableStateOf(false) }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Restock: ${item.itemName}") }) }) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
-            Text("Current quantity on hand: $currentQuantity", style = MaterialTheme.typography.titleMedium)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Restock: ${item.itemName}") }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(20.dp)
+        ) {
+            Text(
+                text = "Current quantity on hand: $currentQuantity",
+                style = MaterialTheme.typography.titleMedium
+            )
             Spacer(modifier = Modifier.height(16.dp))
             Text("Simulated restock amount: $addQty")
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(onClick = { if (addQty > 1) addQty -= 5 }) { Text("-5") }
-                OutlinedButton(onClick = { addQty += 5 }) { Text("+5") }
-                OutlinedButton(onClick = { addQty += 20 }) { Text("+20") }
+                OutlinedButton(
+                    onClick = { if (addQty > 1) addQty -= 5 }
+                ) { Text("-5") }
+                OutlinedButton(
+                    onClick = { addQty += 5 }
+                ) { Text("+5") }
+                OutlinedButton(
+                    onClick = { addQty += 20 }
+                ) { Text("+20") }
             }
             Spacer(modifier = Modifier.height(20.dp))
             Button(
@@ -56,20 +78,19 @@ fun RestockSimulationScreen(
                     justConfirmed = true
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Confirm Restock")
-            }
+            ) { Text("Confirm Restock") }
             if (justConfirmed) {
                 Text(
-                    "Inventory updated: now ${currentQuantity} on hand.",
+                    text = "Inventory updated: now ${currentQuantity} on hand.",
                     color = CafeGreen,
                     modifier = Modifier.padding(top = 12.dp)
                 )
             }
             Spacer(modifier = Modifier.height(20.dp))
-            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                Text("Back to Inventory")
-            }
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Back to Inventory") }
         }
     }
 }

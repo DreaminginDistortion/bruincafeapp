@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.bruincafe.app.data.CartLine
 
 /** Screen S-05: Cart. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(
     cart: List<CartLine>,
@@ -30,11 +32,19 @@ fun CartScreen(
     onCheckout: () -> Unit,
     onKeepBrowsing: () -> Unit
 ) {
-    Scaffold(topBar = { TopAppBar(title = { Text("Your Cart") }) }) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Your Cart") })
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
             if (cart.isEmpty()) {
                 Text(
-                    "Your cart is empty.",
+                    text = "Your cart is empty.",
                     modifier = Modifier.padding(24.dp)
                 )
             } else {
@@ -43,15 +53,27 @@ fun CartScreen(
                     contentPadding = PaddingValues(16.dp)
                 ) {
                     items(cart) { line ->
-                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text(line.item.name, style = MaterialTheme.typography.titleMedium)
-                                    Text("Qty: ${line.quantity}", style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        text = line.item.name,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = "Qty: ${line.quantity}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                                 OutlinedButton(onClick = { onRemove(line.item.id) }) {
                                     Text("Remove")
@@ -70,7 +92,12 @@ fun CartScreen(
                 ) {
                     Text("Checkout")
                 }
-                OutlinedButton(onClick = onKeepBrowsing, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                OutlinedButton(
+                    onClick = onKeepBrowsing,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
                     Text("Keep Browsing Menu")
                 }
             }

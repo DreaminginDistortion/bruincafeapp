@@ -55,7 +55,6 @@ fun BruinCafeNavGraph() {
     var staffLocationId by remember { mutableStateOf("hq") }
 
     NavHost(navController = navController, startDestination = Routes.HOME) {
-
         composable(Routes.HOME) {
             HomeScreen(
                 onOrderLunch = { navController.navigate(Routes.LOCATION) },
