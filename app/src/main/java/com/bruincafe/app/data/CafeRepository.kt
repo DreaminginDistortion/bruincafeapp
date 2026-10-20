@@ -18,7 +18,6 @@ package com.bruincafe.app.data
  *  - Sold-out rule: items with quantityOnHand <= 0 cannot be added to cart.
  */
 object CafeRepository {
-
     private val inventory: MutableList<InventoryItem> = MockData.inventorySeed()
 
     fun locations(): List<CafeLocation> = MockData.locations
@@ -67,6 +66,7 @@ object CafeRepository {
             val row = inventory.firstOrNull { it.itemId == line.item.id }
             row == null || row.quantityOnHand < line.quantity
         }
+
         if (wouldGoNegative) return false
 
         lines.forEach { line ->
@@ -74,6 +74,7 @@ object CafeRepository {
                 it.quantityOnHand -= line.quantity
             }
         }
+
         return true
     }
 

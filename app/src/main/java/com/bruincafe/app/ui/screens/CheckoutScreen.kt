@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import com.bruincafe.app.ui.theme.CafeError
 import com.bruincafe.app.ui.theme.CafeGreen
 
 /** Screen S-06: Checkout / Order Confirmation -- runs the mock order simulation. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckoutScreen(
     cart: List<CartLine>,
@@ -30,23 +32,38 @@ fun CheckoutScreen(
     onPlaceOrder: () -> Unit,
     onNewOrder: () -> Unit
 ) {
-    Scaffold(topBar = { TopAppBar(title = { Text("Checkout") }) }) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
-
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Checkout") })
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(20.dp)
+        ) {
             if (orderConfirmed) {
                 Text(
-                    "Order Confirmed!",
+                    text = "Order Confirmed!",
                     style = MaterialTheme.typography.headlineSmall,
                     color = CafeGreen,
                     fontWeight = FontWeight.Bold
                 )
+
                 Text("This is a mock order simulation -- sample inventory has been updated.")
                 Spacer(modifier = Modifier.height(20.dp))
-                Button(onClick = onNewOrder, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onNewOrder,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Start a New Order")
                 }
             } else {
-                Text("Order Summary", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = "Order Summary",
+                    style = MaterialTheme.typography.titleLarge
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(cart) { line: CartLine ->
@@ -55,7 +72,11 @@ fun CheckoutScreen(
                 }
 
                 orderError?.let {
-                    Text(it, color = CafeError, modifier = Modifier.padding(vertical = 8.dp))
+                    Text(
+                        text = it,
+                        color = CafeError,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                 }
 
                 Button(

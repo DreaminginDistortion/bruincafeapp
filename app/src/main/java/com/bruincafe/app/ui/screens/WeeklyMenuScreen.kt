@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -21,6 +22,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bruincafe.app.data.CafeLocation
@@ -44,6 +46,7 @@ import com.bruincafe.app.ui.theme.CafeGreen
  * WLM-09 (no row for the date -> "Menu Unavailable"), and the
  * HQ-only-breakfast rule.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeeklyMenuScreen(
     location: CafeLocation,
@@ -72,7 +75,10 @@ fun WeeklyMenuScreen(
             // week (Sept 7-11, 2026) may not equal the device's real today.
             Surface(color = CafeCream) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Simulated \"Today\" (demo control)", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = "Simulated \"Today\" (demo control)",
+                        style = MaterialTheme.typography.labelMedium
+                    )
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(allDates) { (date, dow) ->
                             val selected = date == simulatedDate
@@ -95,7 +101,6 @@ fun WeeklyMenuScreen(
             }
 
             LazyColumn(contentPadding = PaddingValues(16.dp)) {
-
                 if (todaysSpecials.isNotEmpty()) {
                     item {
                         Surface(
@@ -105,12 +110,15 @@ fun WeeklyMenuScreen(
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Text(
-                                    "Today's Special",
+                                    text = "Today's Special",
                                     color = androidx.compose.ui.graphics.Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
                                 todaysSpecials.forEach {
-                                    Text(it.name, color = androidx.compose.ui.graphics.Color.White)
+                                    Text(
+                                        text = it.name,
+                                        color = androidx.compose.ui.graphics.Color.White
+                                    )
                                 }
                             }
                         }
@@ -122,7 +130,10 @@ fun WeeklyMenuScreen(
                         SectionLabel("Ready-Made Breakfast (HQ Only)")
                     }
                     items(breakfastItems) { item ->
-                        MenuItemCard(item = item, onClick = { onItemClick(item) })
+                        MenuItemCard(
+                            item = item,
+                            onClick = { onItemClick(item) }
+                        )
                     }
                 }
 
@@ -137,7 +148,7 @@ fun WeeklyMenuScreen(
                 when {
                     day == null -> item {
                         Text(
-                            "Menu Unavailable for this date.",
+                            text = "Menu Unavailable for this date.",
                             color = CafeError,
                             modifier = Modifier.padding(vertical = 24.dp)
                         )
@@ -158,18 +169,32 @@ fun WeeklyMenuScreen(
                         MenuItemCard(item = item, onClick = { onItemClick(item) })
                     }
                 }
-            }
 
-            Surface(color = CafeGreen) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp).clickable { onViewCart() },
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "View Cart ($cartCount)",
-                        color = androidx.compose.ui.graphics.Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                /* The "View Cart" button needs to be contained within the LazyColum
+                 * to allow it to display on devices with larger font sizes.
+                 * - Eli
+                 */
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .padding(24.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = CafeGreen
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                                .clickable { onViewCart() },
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "View Cart ($cartCount)",
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -193,7 +218,12 @@ private fun MenuItemCard(item: MenuItem, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(item.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = item.name,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f) // Needed to prevent the cramming of other elements - Eli
+                )
                 StockBadge(status)
             }
             Text(
@@ -203,7 +233,9 @@ private fun MenuItemCard(item: MenuItem, onClick: () -> Unit) {
                 modifier = Modifier.padding(top = 4.dp)
             )
             Text(
-                text = item.course.name.lowercase().replaceFirstChar { it.uppercase() },
+                text = item.course.name
+                    .lowercase()
+                    .replaceFirstChar { it.uppercase() },
                 style = MaterialTheme.typography.labelSmall,
                 color = CafeGold,
                 modifier = Modifier.padding(top = 4.dp)

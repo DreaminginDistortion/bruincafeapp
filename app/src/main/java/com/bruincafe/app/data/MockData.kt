@@ -16,7 +16,6 @@ package com.bruincafe.app.data
  * ============================================================================
  */
 object MockData {
-
     val locations = listOf(
         CafeLocation(id = "hq", displayName = "Headquarters", subtitle = "HQ Bruin Café"),
         CafeLocation(id = "tech_center", displayName = "Tech Center", subtitle = "Tech Center Café")
