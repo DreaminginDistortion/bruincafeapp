@@ -8,6 +8,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bruincafe.app.data.StockStatus
 import com.bruincafe.app.ui.theme.CafeError
@@ -27,17 +28,20 @@ fun StockBadge(status: StockStatus, modifier: Modifier = Modifier) {
         StockStatus.LOW_STOCK -> "Low Stock" to CafeGold
         StockStatus.SOLD_OUT -> "Sold Out" to CafeError
     }
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(50),
-        color = color.copy(alpha = 0.15f)
-    ) {
-        Text(
-            text = label,
-            color = color,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-        )
+    Row {
+        Surface(
+            modifier = modifier,
+            shape = RoundedCornerShape(50),
+            color = color.copy(alpha = 0.15f)
+        ) {
+            Text(
+                text = label,
+                color = color,
+                style = MaterialTheme.typography.labelMedium,
+                overflow = TextOverflow.Visible,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
     }
 }
 
