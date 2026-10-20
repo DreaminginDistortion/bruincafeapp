@@ -22,6 +22,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bruincafe.app.data.CafeLocation
@@ -100,7 +101,6 @@ fun WeeklyMenuScreen(
             }
 
             LazyColumn(contentPadding = PaddingValues(16.dp)) {
-
                 if (todaysSpecials.isNotEmpty()) {
                     item {
                         Surface(
@@ -169,18 +169,32 @@ fun WeeklyMenuScreen(
                         MenuItemCard(item = item, onClick = { onItemClick(item) })
                     }
                 }
-            }
 
-            Surface(color = CafeGreen) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp).clickable { onViewCart() },
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "View Cart ($cartCount)",
-                        color = androidx.compose.ui.graphics.Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                /* The "View Cart" button needs to be contained within the LazyColum
+                 * to allow it to display on devices with larger font sizes.
+                 * - Eli
+                 */
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .padding(24.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = CafeGreen
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                                .clickable { onViewCart() },
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "View Cart ($cartCount)",
+                                color = androidx.compose.ui.graphics.Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -207,7 +221,8 @@ private fun MenuItemCard(item: MenuItem, onClick: () -> Unit) {
                 Text(
                     text = item.name,
                     fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f) // Needed to prevent the cramming of other elements - Eli
                 )
                 StockBadge(status)
             }
