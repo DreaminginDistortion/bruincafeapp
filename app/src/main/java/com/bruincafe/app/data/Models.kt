@@ -1,15 +1,15 @@
 package com.bruincafe.app.data
 
+import java.time.LocalTime
+
 /**
  * Data models.
  *
- * These mirror the Supabase table columns from the Deliverable 2 data design
- * (week_start_date, menu_date, day_of_week, item_name, description, course, is_closed)
- * plus an Inventory model for the staff-facing rules.
+ * These mirror the Supabase tables in supabase/schema_and_seed.sql
+ * (locations, meal_periods, menu_items, inventory).
  *
  * NOTE for Swift devs: these are plain data classes -- the direct equivalent of
- * lightweight Swift `struct`s conforming to `Identifiable` / `Codable`. There is
- * no framework magic here; a `data class` just auto-generates equals/hashCode/copy.
+ * lightweight Swift `struct`s conforming to `Identifiable` / `Codable`.
  */
 
 enum class Course { APPETIZER, ENTREE, DESSERT }
@@ -22,13 +22,38 @@ data class CafeLocation(
     val subtitle: String
 )
 
+/**
+ * A serving window, e.g. breakfast 07:00-11:00. Loaded from the `meal_periods`
+ * table, so changing serving hours is a database edit, not an app release.
+ * The window is [start, end): the end time itself already belongs to the next period.
+ */
+data class MealPeriodDef(
+    val name: String,      // machine key used on menu items: "breakfast" | "lunch"
+    val label: String,     // display text: "Breakfast" | "Lunch"
+    val start: LocalTime,
+    val end: LocalTime
+) {
+    fun contains(t: LocalTime): Boolean =
+        if (start <= end) t >= start && t < end      // normal same-day window
+        else t >= start || t < end                   // window that crosses midnight
+}
+
 data class MenuItem(
     val id: String,
     val locationId: String,
     val name: String,
     val description: String,
-    val course: Course
-)
+    val course: Course,
+    // "breakfast" / "lunch" (matches MealPeriodDef.name), or "cafe" / "holiday" for special items
+    val mealPeriod: String = "lunch"
+) {
+    /** Text shown on cards and read by screen readers, e.g. "Breakfast", "Café", "Holiday". */
+    val categoryLabel: String
+        get() = when (mealPeriod) {
+            "cafe" -> "Café"
+            else -> mealPeriod.replaceFirstChar { it.uppercase() }
+        }
+}
 
 data class DayMenu(
     val dayOfWeek: String,     // "Monday" .. "Friday"

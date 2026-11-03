@@ -1,44 +1,53 @@
 package com.bruincafe.app.data
 
+import java.time.LocalDate
+
 /**
  * Repository -- the single seam between UI and data.
  *
- * This is the ONLY other file you'd touch to go from mock data to a real
- * Supabase backend: replace the bodies below with network/DB calls that
- * return the same types, and every screen keeps working as-is.
+ * Starts on MockData so the app always works. Calling [refreshFromSupabase]
+ * swaps in live data from Supabase when SupabaseConfig is filled in; if the
+ * network call fails, the previous data stays in place and an error message
+ * is returned for the UI to show.
  *
- * For Swift devs: this plays the role a `CafeService`/`Repository` protocol +
- * implementation would play in a SwiftUI app -- screens depend on this
- * abstraction, never on the raw data source.
- *
- * Business rules encoded here (see Deliverable 2, Section 1):
- *  - WLM-01: menu queries are always scoped to a location.
- *  - WLM-04 / holiday rule: a closed day returns no items, only a message.
- *  - WLM-07: "today's special" = entree(s) on the row matching the given date.
- *  - Sold-out rule: items with quantityOnHand <= 0 cannot be added to cart.
+ * The menu RULES live in [MenuStore] (pure, testable); this object just holds
+ * the current snapshot + inventory and does the network sync.
  */
 object CafeRepository {
-    private val inventory: MutableList<InventoryItem> = MockData.inventorySeed()
 
-    fun locations(): List<CafeLocation> = MockData.locations
+    @Volatile private var store: MenuStore = MenuStore.fromMock()
+    @Volatile private var inventory: MutableList<InventoryItem> = MockData.inventorySeed()
+    @Volatile private var live: Boolean = false
 
-    fun weeklyMenu(locationId: String): List<DayMenu> =
-        when (locationId) {
-            "hq" -> MockData.weeklyMenuHq
-            "tech_center" -> MockData.weeklyMenuTechCenter
-            else -> emptyList()
+    val dataSource: String
+        get() = when {
+            live -> "Supabase (live)"
+            SupabaseConfig.isConfigured -> "Mock data (Supabase unreachable)"
+            else -> "Mock data (Supabase not configured)"
         }
 
-    /** HQ-only ready-made breakfast items; empty for any other location. */
-    fun breakfastItems(locationId: String): List<MenuItem> =
-        if (locationId == "hq") MockData.hqBreakfastItems else emptyList()
+    // ---- Reads used by the UI -------------------------------------------------
 
-    /** WLM-07: today's special = entree item(s) on the day matching [simulatedDate]. */
-    fun todaysSpecial(locationId: String, simulatedDate: String): List<MenuItem> {
-        val day = weeklyMenu(locationId).firstOrNull { it.date == simulatedDate && !it.isClosed }
-            ?: return emptyList()
-        return day.items.filter { it.course == Course.ENTREE }
-    }
+    fun locations(): List<CafeLocation> = store.locations
+    fun mealPeriods(): List<MealPeriodDef> = store.periods
+    fun weeklyMenu(locationId: String): List<DayMenu> = store.weekMenu(locationId)
+    fun closedMessage(locationId: String, date: String): String? = store.closedMessage(locationId, date)
+    fun itemsFor(locationId: String, date: String, period: String): List<MenuItem> =
+        store.itemsFor(locationId, date, period)
+    fun todaysSpecial(locationId: String, date: String): List<MenuItem> =
+        store.todaysSpecial(locationId, date)
+    fun allMenuDates(): List<Pair<String, String>> = store.allDates()
+
+    // Café + holiday menu (S-11)
+    fun cafeItems(locationId: String): List<SpecialItem> = SpecialMenu.cafeItems(store.special, locationId)
+    fun activeHolidayItems(locationId: String, date: LocalDate): List<SpecialItem> =
+        SpecialMenu.activeHolidayItems(store.special, locationId, date)
+    fun nextHoliday(locationId: String, date: LocalDate): SpecialItem? =
+        SpecialMenu.nextHoliday(store.special, locationId, date)
+
+    /** True if stock is counted for this item. Made-to-order café items have no inventory row. */
+    fun isTracked(itemId: String): Boolean = inventory.any { it.itemId == itemId }
+    fun defaultDate(): String = store.defaultDate(LocalDate.now().toString())
 
     fun inventoryFor(locationId: String): List<InventoryItem> =
         inventory.filter { it.locationId == locationId }
@@ -49,32 +58,24 @@ object CafeRepository {
     fun quantityOnHand(itemId: String): Int =
         inventory.firstOrNull { it.itemId == itemId }?.quantityOnHand ?: 0
 
-    /** Staff action: simulate a restock. Never goes negative; no upper cap for a POC. */
+    // ---- Local inventory changes (instant); pushInventory() syncs them ---------
+
     fun restock(itemId: String, addQuantity: Int) {
         val row = inventory.firstOrNull { it.itemId == itemId } ?: return
         row.quantityOnHand = (row.quantityOnHand + addQuantity).coerceAtLeast(0)
     }
 
-    /**
-     * Mock order simulation: decrements inventory for each cart line by the
-     * quantity ordered. Returns false (and changes nothing) if any line would
-     * be pushed below zero -- mirrors "prevent sold-out items from being
-     * added to the cart" holding true all the way through checkout too.
-     */
+    /** Decrements inventory per cart line; returns false (changing nothing) if any line would go below zero. */
     fun placeMockOrder(lines: List<CartLine>): Boolean {
+        // Items with no inventory row (made-to-order café items) are untracked and always orderable.
         val wouldGoNegative = lines.any { line ->
             val row = inventory.firstOrNull { it.itemId == line.item.id }
-            row == null || row.quantityOnHand < line.quantity
+            row != null && row.quantityOnHand < line.quantity
         }
-
         if (wouldGoNegative) return false
-
         lines.forEach { line ->
-            inventory.firstOrNull { it.itemId == line.item.id }?.let {
-                it.quantityOnHand -= line.quantity
-            }
+            inventory.firstOrNull { it.itemId == line.item.id }?.let { it.quantityOnHand -= line.quantity }
         }
-
         return true
     }
 
@@ -82,10 +83,49 @@ object CafeRepository {
         username.isNotBlank() && password.isNotBlank() &&
             MockData.staffUsernames.any { it.equals(username, ignoreCase = true) }
 
-    /** All dates present across every location's weekly menu, for the demo date-picker. */
-    fun allMenuDates(): List<Pair<String, String>> =
-        (MockData.weeklyMenuHq + MockData.weeklyMenuTechCenter)
-            .distinctBy { it.date }
-            .sortedBy { it.date }
-            .map { it.date to it.dayOfWeek }
+    // ---- Supabase sync (blocking; call off the main thread) --------------------
+
+    /** Returns null on success (or when Supabase isn't configured), else a message for the UI. */
+    fun refreshFromSupabase(): String? {
+        if (!SupabaseConfig.isConfigured) return null
+        return try {
+            val locations = SupabaseApi.fetchLocations()
+            val periods = SupabaseApi.fetchMealPeriods()
+            val rows = SupabaseApi.fetchMenuRows()
+            val inv = SupabaseApi.fetchInventory()
+            check(locations.isNotEmpty() && periods.isNotEmpty() && rows.isNotEmpty()) {
+                "Supabase tables are empty - run supabase/schema_and_seed.sql"
+            }
+            val itemsById = rows.associate { it.item.id to it.item }
+            val newInventory = inv.mapNotNull { r ->
+                itemsById[r.itemId]?.let {
+                    InventoryItem(r.itemId, it.name, it.locationId, r.quantity, r.threshold)
+                }
+            }.toMutableList()
+
+            // If the special_items table is missing/unreachable, keep the built-in café + holiday items.
+            val special = runCatching { SupabaseApi.fetchSpecialItems() }.getOrElse { MockData.specialItems }
+
+            store = MenuStore.fromRows(locations, periods, rows, special)
+            inventory = newInventory
+            live = true
+            null
+        } catch (e: Exception) {
+            "Couldn't load from Supabase (${e.message}). Showing ${if (live) "last loaded" else "mock"} data."
+        }
+    }
+
+    /** Writes the current quantity of each item to Supabase. No-op unless live data is loaded. */
+    fun pushInventory(itemIds: List<String>): String? {
+        if (!live) return null
+        return try {
+            // Only items that have an inventory row are written back (café items are untracked).
+            itemIds.distinct().filter { id -> inventory.any { it.itemId == id } }.forEach { id ->
+                SupabaseApi.upsertInventoryQuantity(id, quantityOnHand(id))
+            }
+            null
+        } catch (e: Exception) {
+            "Couldn't save inventory to Supabase (${e.message})."
+        }
+    }
 }

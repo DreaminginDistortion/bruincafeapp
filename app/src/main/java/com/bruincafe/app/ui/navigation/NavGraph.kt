@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,49 +14,64 @@ import com.bruincafe.app.data.CafeRepository
 import com.bruincafe.app.data.InventoryItem
 import com.bruincafe.app.data.MenuItem
 import com.bruincafe.app.ui.CafeViewModel
+import com.bruincafe.app.ui.screens.AccessibilitySettingsScreen
+import com.bruincafe.app.ui.screens.CafeHolidayScreen
 import com.bruincafe.app.ui.screens.CartScreen
 import com.bruincafe.app.ui.screens.CheckoutScreen
 import com.bruincafe.app.ui.screens.HomeScreen
 import com.bruincafe.app.ui.screens.InventoryDashboardScreen
 import com.bruincafe.app.ui.screens.ItemDetailScreen
 import com.bruincafe.app.ui.screens.LocationSelectScreen
+import com.bruincafe.app.ui.screens.OrderHistoryScreen
 import com.bruincafe.app.ui.screens.RestockSimulationScreen
 import com.bruincafe.app.ui.screens.StaffLoginScreen
 import com.bruincafe.app.ui.screens.WeeklyMenuScreen
 
 /**
- * Screen route names -- mirror the Screen Inventory IDs (S-01..S-09) in
- * comments so the doc and the code never drift apart.
+ * Screen route names -- mirror the Screen Inventory IDs in comments so the
+ * document and the code never drift apart.
  */
 private object Routes {
-    const val HOME = "home"                 // S-01
-    const val LOCATION = "location"          // S-02
-    const val WEEKLY_MENU = "weekly_menu"    // S-03
-    const val ITEM_DETAIL = "item_detail"    // S-04
-    const val CART = "cart"                  // S-05
-    const val CHECKOUT = "checkout"          // S-06
-    const val STAFF_LOGIN = "staff_login"    // S-07
-    const val INVENTORY = "inventory"        // S-08
-    const val RESTOCK = "restock"            // S-09
+    const val HOME = "home"                       // S-01  Rewards home
+    const val LOCATION = "location"               // S-02
+    const val WEEKLY_MENU = "weekly_menu"         // S-03
+    const val ITEM_DETAIL = "item_detail"         // S-04
+    const val CART = "cart"                       // S-05
+    const val CHECKOUT = "checkout"               // S-06
+    const val STAFF_LOGIN = "staff_login"         // S-07
+    const val INVENTORY = "inventory"             // S-08
+    const val RESTOCK = "restock"                 // S-09
+    const val ORDER_HISTORY = "order_history"     // S-10 (new)
+    const val CAFE_HOLIDAY = "cafe_holiday"       // S-11 (new)
+    const val ACCESSIBILITY = "accessibility"     // S-12 (new)
 }
 
 @Composable
-fun BruinCafeNavGraph() {
+fun BruinCafeNavGraph(viewModel: CafeViewModel) {
     val navController: NavHostController = rememberNavController()
-    val viewModel: CafeViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
     val inventoryVersion by viewModel.inventoryVersion.collectAsState()
 
-    // Held outside the ViewModel because it's pure UI navigation state
-    // (which item the customer/staff member is currently looking at).
+    // Pure UI navigation state: which item the customer / staff member is looking at.
     var selectedItem by remember { mutableStateOf<MenuItem?>(null) }
     var selectedInventoryRow by remember { mutableStateOf<InventoryItem?>(null) }
     var staffLocationId by remember { mutableStateOf("hq") }
 
+    val currentLocationId = uiState.selectedLocationId ?: uiState.locations.first().id
+    val goBack: () -> Unit = { navController.popBackStack() }
+
     NavHost(navController = navController, startDestination = Routes.HOME) {
+
         composable(Routes.HOME) {
             HomeScreen(
-                onOrderLunch = { navController.navigate(Routes.LOCATION) },
+                rewards = uiState.rewards,
+                onOrder = { navController.navigate(Routes.LOCATION) },
+                onCafeHoliday = {
+                    viewModel.selectLocation(currentLocationId)
+                    navController.navigate(Routes.CAFE_HOLIDAY)
+                },
+                onOrderHistory = { navController.navigate(Routes.ORDER_HISTORY) },
+                onAccessibility = { navController.navigate(Routes.ACCESSIBILITY) },
                 onStaffLogin = { navController.navigate(Routes.STAFF_LOGIN) }
             )
         }
@@ -68,26 +82,53 @@ fun BruinCafeNavGraph() {
                 onLocationChosen = {
                     viewModel.selectLocation(it.id)
                     navController.navigate(Routes.WEEKLY_MENU)
-                }
+                },
+                onBack = goBack
             )
         }
 
         composable(Routes.WEEKLY_MENU) {
-            val locationId = uiState.selectedLocationId ?: "hq"
-            val location = uiState.locations.first { it.id == locationId }
+            val location = uiState.locations.first { it.id == currentLocationId }
             WeeklyMenuScreen(
                 location = location,
-                weekMenu = CafeRepository.weeklyMenu(locationId),
-                breakfastItems = CafeRepository.breakfastItems(locationId),
+                periods = uiState.mealPeriods,
+                now = uiState.effectiveTime,
+                simulatedTime = uiState.simulatedTime,
+                onSimulatedTimeChange = viewModel::setSimulatedTime,
                 simulatedDate = uiState.simulatedDate,
                 onSimulatedDateChange = viewModel::setSimulatedDate,
+                dataSource = uiState.dataSource,
+                isLoading = uiState.isLoading,
+                loadError = uiState.loadError,
+                onRefresh = viewModel::refreshData,
                 onItemClick = {
                     selectedItem = it
                     navController.navigate(Routes.ITEM_DETAIL)
                 },
-                onBack = { navController.popBackStack() },
                 onViewCart = { navController.navigate(Routes.CART) },
-                cartCount = uiState.cart.sumOf { it.quantity }
+                cartCount = uiState.cart.sumOf { it.quantity },
+                cartMessage = uiState.cartMessage,
+                onCartMessageShown = viewModel::clearCartMessage,
+                onBack = goBack
+            )
+        }
+
+        composable(Routes.CAFE_HOLIDAY) {
+            CafeHolidayScreen(
+                locations = uiState.locations,
+                selectedLocationId = currentLocationId,
+                onLocationChange = viewModel::selectLocation,
+                holidayDemoDate = uiState.holidayDemoDate,
+                onHolidayDemoDateChange = viewModel::setHolidayDemoDate,
+                onItemClick = {
+                    selectedItem = it
+                    navController.navigate(Routes.ITEM_DETAIL)
+                },
+                onViewCart = { navController.navigate(Routes.CART) },
+                cartCount = uiState.cart.sumOf { it.quantity },
+                cartMessage = uiState.cartMessage,
+                onCartMessageShown = viewModel::clearCartMessage,
+                onBack = goBack
             )
         }
 
@@ -99,7 +140,7 @@ fun BruinCafeNavGraph() {
                         viewModel.addToCart(it)
                         navController.popBackStack()
                     },
-                    onBack = { navController.popBackStack() }
+                    onBack = goBack
                 )
             }
         }
@@ -109,29 +150,46 @@ fun BruinCafeNavGraph() {
                 cart = uiState.cart,
                 onRemove = viewModel::removeFromCart,
                 onCheckout = { navController.navigate(Routes.CHECKOUT) },
-                onKeepBrowsing = { navController.popBackStack() }
+                onKeepBrowsing = goBack,
+                onBack = goBack
             )
         }
 
         composable(Routes.CHECKOUT) {
             CheckoutScreen(
                 cart = uiState.cart,
-                orderConfirmed = uiState.lastOrderConfirmed,
+                confirmedOrder = uiState.confirmedOrder,
                 orderError = uiState.lastOrderError,
                 onPlaceOrder = viewModel::placeOrder,
                 onNewOrder = {
                     viewModel.clearOrderConfirmation()
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.HOME) { inclusive = true }
-                    }
-                }
+                    navController.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } }
+                },
+                onViewHistory = {
+                    navController.navigate(Routes.ORDER_HISTORY) { popUpTo(Routes.HOME) }
+                    viewModel.clearOrderConfirmation()
+                },
+                onBack = goBack
+            )
+        }
+
+        composable(Routes.ORDER_HISTORY) {
+            OrderHistoryScreen(orders = uiState.orders, rewards = uiState.rewards, onBack = goBack)
+        }
+
+        composable(Routes.ACCESSIBILITY) {
+            AccessibilitySettingsScreen(
+                settings = uiState.accessibility,
+                onChange = viewModel::setAccessibility,
+                onBack = goBack
             )
         }
 
         composable(Routes.STAFF_LOGIN) {
             StaffLoginScreen(
                 onLogin = viewModel::staffLogin,
-                onLoginSuccess = { navController.navigate(Routes.INVENTORY) }
+                onLoginSuccess = { navController.navigate(Routes.INVENTORY) },
+                onBack = goBack
             )
         }
 
@@ -149,9 +207,7 @@ fun BruinCafeNavGraph() {
                 },
                 onLogout = {
                     viewModel.staffLogout()
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.HOME) { inclusive = true }
-                    }
+                    navController.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } }
                 }
             )
         }
@@ -163,7 +219,7 @@ fun BruinCafeNavGraph() {
                     item = row,
                     currentQuantity = CafeRepository.quantityOnHand(row.itemId),
                     onConfirmRestock = { qty -> viewModel.restock(row.itemId, qty) },
-                    onBack = { navController.popBackStack() }
+                    onBack = goBack
                 )
             }
         }
