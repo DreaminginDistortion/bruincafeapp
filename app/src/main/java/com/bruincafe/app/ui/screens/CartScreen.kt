@@ -1,3 +1,11 @@
+/*
+ * CartScreen.kt
+ * BruinCafeApp
+ *
+ * Modified by David Crosen on 11/13/2026:
+ * Integrated  +/- quantity adjustments with Supabase state.
+ */
+
 package com.bruincafe.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -21,16 +30,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.bruincafe.app.data.CartLine
 
-/** Screen S-05: Cart. */
+/**
+ * Screen S-05: Cart.
+ */
 @Composable
 fun CartScreen(
     cart: List<CartLine>,
     onRemove: (String) -> Unit,
+    // Update quantity (Added by David Crosen)
+    onUpdateQuantity: (String, Int) -> Unit,
     onCheckout: () -> Unit,
     onKeepBrowsing: () -> Unit,
     onBack: () -> Unit
@@ -54,9 +65,11 @@ fun CartScreen(
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp)
                 )
                 LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(16.dp)) {
-                    items(cart) { line ->
+                    items(cart, key = { it.item.id }) { line ->
                         Card(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = scheme.secondaryContainer,
                                 contentColor = scheme.onSecondaryContainer
@@ -64,20 +77,57 @@ fun CartScreen(
                             border = contrastBorder()
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                // Item info column without conflicting weights
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .padding(end = 12.dp)
+                                ) {
                                     Text(line.item.name, style = MaterialTheme.typography.titleMedium)
                                     Text("Quantity: ${line.quantity}", style = MaterialTheme.typography.bodyMedium)
                                 }
-                                OutlinedButton(
-                                    onClick = { onRemove(line.item.id) },
-                                    modifier = Modifier.semantics {
-                                        contentDescription = "Remove ${line.item.name} from cart"
+
+                                // +/- Quantity Adjusters (Added by David Crosen)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            if (line.quantity > 1) {
+                                                onUpdateQuantity(line.item.id, line.quantity - 1)
+                                            } else {
+                                                onRemove(line.item.id)
+                                            }
+                                        },
+                                        modifier = Modifier.size(36.dp),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text("-")
                                     }
-                                ) { Text("Remove") }
+
+                                    Text(
+                                        text = "${line.quantity}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(horizontal = 6.dp)
+                                    )
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            onUpdateQuantity(line.item.id, line.quantity + 1)
+                                        },
+                                        modifier = Modifier.size(36.dp),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text("+")
+                                    }
+                                }
                             }
                         }
                     }

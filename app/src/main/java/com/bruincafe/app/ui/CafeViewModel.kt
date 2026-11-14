@@ -1,3 +1,11 @@
+/*
+ * CafeViewModel.kt
+ * BruinCafeApp
+ *
+ * Modified by David Crosen:
+ * - Added stock-aware quantity checks in addToCart and updateCartItemQuantity to ensure 
+ *   cart quantities respect live inventory stock levels.
+ */
 package com.bruincafe.app.ui
 
 import androidx.lifecycle.ViewModel
@@ -25,24 +33,18 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
 
-/**
- * Holds all shared UI state and exposes it as [StateFlow].
- * Swift analog: an `ObservableObject` with `@Published` properties.
- */
 data class CafeUiState(
     val locations: List<CafeLocation> = CafeRepository.locations(),
     val mealPeriods: List<MealPeriodDef> = CafeRepository.mealPeriods(),
     val selectedLocationId: String? = null,
     val simulatedDate: String = CafeRepository.defaultDate(),
-    // Real device clock, refreshed by a ticker so the menu flips on its own.
     val now: LocalTime = LocalTime.now(),
-    // Demo overrides: when non-null they replace the real time / real date.
     val simulatedTime: LocalTime? = null,
     val holidayDemoDate: LocalDate? = null,
     val cart: List<CartLine> = emptyList(),
-    val cartMessage: String? = null,                 // spoken/shown once as a snackbar
+    val cartMessage: String? = null,
     val isStaffLoggedIn: Boolean = false,
-    val confirmedOrder: Order? = null,               // set right after a successful checkout
+    val confirmedOrder: Order? = null,
     val lastOrderError: String? = null,
     val orders: List<Order> = OrderHistoryStore.load(),
     val accessibility: AccessibilitySettings = AccessibilityStore.load(),
@@ -60,13 +62,11 @@ class CafeViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(CafeUiState())
     val uiState: StateFlow<CafeUiState> = _uiState
 
-    /** Bumps so inventory screens recompose after inventory changes. */
     private val _inventoryVersion = MutableStateFlow(0)
     val inventoryVersion: StateFlow<Int> = _inventoryVersion
 
     init {
         refreshData()
-        // Tick every 15s so the active meal period updates while the app is open.
         viewModelScope.launch {
             while (true) {
                 _uiState.update { it.copy(now = LocalTime.now()) }
@@ -75,7 +75,6 @@ class CafeViewModel : ViewModel() {
         }
     }
 
-    /** Pulls menus, meal periods, café/holiday items and inventory from Supabase (no-op if not configured). */
     fun refreshData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -95,12 +94,6 @@ class CafeViewModel : ViewModel() {
         }
     }
 
-    /**
-     * BUG FIX (cart disappearing on HQ): this used to clear the cart EVERY time a
-     * location was tapped -- even re-tapping Headquarters -- so a cart built at HQ
-     * vanished whenever the customer came back through "Order" or the café page. The cart is
-     * now only cleared when the location actually CHANGES (a cart can't mix locations).
-     */
     fun selectLocation(locationId: String) {
         _uiState.update {
             if (it.selectedLocationId == locationId) it
@@ -112,14 +105,26 @@ class CafeViewModel : ViewModel() {
     fun setSimulatedTime(time: LocalTime?) { _uiState.update { it.copy(simulatedTime = time) } }
     fun setHolidayDemoDate(date: LocalDate?) { _uiState.update { it.copy(holidayDemoDate = date) } }
 
-    /** Sold-out rule enforced here too, not just visually in the item screen. */
+    /**
+     * Stock-aware add to cart logic (Added by David Crosen).
+     * Verifies against available on-hand quantity before incrementing or adding items.
+     */
     fun addToCart(item: MenuItem) {
         if (CafeRepository.stockStatus(item.id) == StockStatus.SOLD_OUT) {
             _uiState.update { it.copy(cartMessage = "Sorry, ${item.name} is sold out.") }
             return
         }
+
         _uiState.update { state ->
             val existing = state.cart.firstOrNull { it.item.id == item.id }
+            val currentQtyInCart = existing?.quantity ?: 0
+            val availableStock = CafeRepository.quantityOnHand(item.id)
+
+            // If stock tracking is active and we've hit the limit, block adding more
+            if (availableStock > 0 && currentQtyInCart >= availableStock) {
+                return@update state.copy(cartMessage = "Cannot add more. Only $availableStock available in stock.")
+            }
+
             val updated = if (existing != null) {
                 state.cart.map { if (it.item.id == item.id) it.copy(quantity = it.quantity + 1) else it }
             } else {
@@ -133,6 +138,28 @@ class CafeViewModel : ViewModel() {
 
     fun removeFromCart(itemId: String) {
         _uiState.update { state -> state.copy(cart = state.cart.filter { it.item.id != itemId }) }
+    }
+
+    /**
+     * Stock-aware quantity update logic for Cart +/- buttons (Added by David Crosen).
+     */
+    fun updateCartItemQuantity(itemId: String, quantity: Int) {
+        if (quantity <= 0) {
+            removeFromCart(itemId)
+        } else {
+            val availableStock = CafeRepository.quantityOnHand(itemId)
+            if (availableStock > 0 && quantity > availableStock) {
+                _uiState.update { it.copy(cartMessage = "Only $availableStock available in stock.") }
+                return
+            }
+
+            _uiState.update { state ->
+                val updated = state.cart.map {
+                    if (it.item.id == itemId) it.copy(quantity = quantity) else it
+                }
+                state.copy(cart = updated, cartMessage = null)
+            }
+        }
     }
 
     fun placeOrder() {
@@ -152,7 +179,7 @@ class CafeViewModel : ViewModel() {
             locationName = locationName,
             lines = lines.map { OrderLineRecord(it.item.name, it.quantity) }
         )
-        val updatedHistory = OrderHistoryStore.add(order)     // saved on this device only
+        val updatedHistory = OrderHistoryStore.add(order)
         _uiState.update {
             it.copy(cart = emptyList(), confirmedOrder = order, orders = updatedHistory, lastOrderError = null)
         }
@@ -176,10 +203,13 @@ class CafeViewModel : ViewModel() {
 
     fun staffLogout() { _uiState.update { it.copy(isStaffLoggedIn = false) } }
 
-    fun restock(itemId: String, quantity: Int) {
-        CafeRepository.restock(itemId, quantity)
-        _inventoryVersion.update { it + 1 }
-        pushInventory(listOf(itemId))
+    fun restock(itemId: String, quantity: Int): Boolean {
+        val success = CafeRepository.restock(itemId, quantity)
+        if (success) {
+            _inventoryVersion.update { it + 1 }
+            pushInventory(listOf(itemId))
+        }
+        return success
     }
 
     private fun pushInventory(ids: List<String>) {

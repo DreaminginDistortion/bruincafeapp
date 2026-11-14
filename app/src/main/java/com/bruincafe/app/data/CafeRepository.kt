@@ -59,10 +59,15 @@ object CafeRepository {
         inventory.firstOrNull { it.itemId == itemId }?.quantityOnHand ?: 0
 
     // ---- Local inventory changes (instant); pushInventory() syncs them ---------
-
-    fun restock(itemId: String, addQuantity: Int) {
-        val row = inventory.firstOrNull { it.itemId == itemId } ?: return
-        row.quantityOnHand = (row.quantityOnHand + addQuantity).coerceAtLeast(0)
+// Added remove stock (By David Crosen)
+    fun restock(itemId: String, quantityChange: Int): Boolean {
+        val row = inventory.firstOrNull { it.itemId == itemId } ?: return false
+        val newQuantity = row.quantityOnHand + quantityChange
+        if (newQuantity < 0) {
+            return false // Cannot remove more than available
+        }
+        row.quantityOnHand = newQuantity
+        return true
     }
 
     /** Decrements inventory per cart line; returns false (changing nothing) if any line would go below zero. */

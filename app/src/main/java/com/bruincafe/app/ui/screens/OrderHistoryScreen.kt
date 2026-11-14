@@ -1,3 +1,11 @@
+/*
+ * OrderHistoryScreen.kt
+ * BruinCafeApp
+ *
+ * Modified by David Crosen:
+ * - Updated order history text summaries and rewards labels to display earned punches instead of points.
+ */
+
 package com.bruincafe.app.ui.screens
 
 import androidx.compose.foundation.layout.Column
@@ -30,7 +38,7 @@ private val whenFormat = DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a")
 
 /**
  * Screen S-10: Order History. Newest first. Stored on this device only (see AppStorage),
- * and the rewards points shown on the home screen are added up from exactly these orders.
+ * and the rewards punches shown on the home screen are added up from exactly these orders.
  */
 @Composable
 fun OrderHistoryScreen(
@@ -46,11 +54,12 @@ fun OrderHistoryScreen(
             if (orders.isEmpty()) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     SectionLabel("No orders yet")
-                    Text("Your completed orders will appear here, and each item you order earns rewards points.")
+                    Text("Your completed orders will appear here, and each order earns rewards punches.")
                 }
+                // New punch rewards system (Implemented by David Crosen)
             } else {
                 Text(
-                    "${orders.size} ${if (orders.size == 1) "order" else "orders"}, ${rewards.totalPoints} points earned in total",
+                    "${orders.size} ${if (orders.size == 1) "order" else "orders"}, ${rewards.totalPunches} punches earned in total",
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp)
                 )
@@ -60,7 +69,7 @@ fun OrderHistoryScreen(
                             .atZone(ZoneId.systemDefault()).format(whenFormat)
                         val itemsSpoken = order.lines.joinToString(", ") { "${it.quantity} ${it.name}" }
                         val spoken = "Order on $whenText at ${order.locationName}. $itemsSpoken. " +
-                            "${order.itemCount} items, ${order.points} points earned."
+                                "${order.itemCount} items, ${order.punchesEarned} punches earned."
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -80,7 +89,7 @@ fun OrderHistoryScreen(
                                     Text("${line.quantity} x ${line.name}", modifier = Modifier.padding(top = 2.dp))
                                 }
                                 Text(
-                                    "+${order.points} points",
+                                    "+${order.punchesEarned} punches",
                                     color = scheme.secondary,
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.padding(top = 6.dp)

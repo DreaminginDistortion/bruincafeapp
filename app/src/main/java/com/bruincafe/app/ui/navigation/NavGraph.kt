@@ -70,6 +70,8 @@ fun BruinCafeNavGraph(viewModel: CafeViewModel) {
                     viewModel.selectLocation(currentLocationId)
                     navController.navigate(Routes.CAFE_HOLIDAY)
                 },
+                // Button route for Cart on Home Screen (Added by David Crosen)
+                onViewCart = { navController.navigate(Routes.CART) },
                 onOrderHistory = { navController.navigate(Routes.ORDER_HISTORY) },
                 onAccessibility = { navController.navigate(Routes.ACCESSIBILITY) },
                 onStaffLogin = { navController.navigate(Routes.STAFF_LOGIN) }
@@ -149,6 +151,8 @@ fun BruinCafeNavGraph(viewModel: CafeViewModel) {
             CartScreen(
                 cart = uiState.cart,
                 onRemove = viewModel::removeFromCart,
+                // Update quantity route for +/- buttons on Cart screen (Added by David Crosen)
+                onUpdateQuantity = viewModel::updateCartItemQuantity,
                 onCheckout = { navController.navigate(Routes.CHECKOUT) },
                 onKeepBrowsing = goBack,
                 onBack = goBack

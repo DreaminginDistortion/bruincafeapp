@@ -1,5 +1,12 @@
 package com.bruincafe.app.ui.screens
 
+/*
+ * CheckoutScreen.kt
+ * BruinCafeApp
+ *
+ * Modified by David Crosen:
+ * - Fixed points reference to punchesEarned in order confirmation display.
+ */
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -49,7 +56,7 @@ fun CheckoutScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
-
+             // Made .pointsEarned to .PunchesEarned (Modified by David Crosen)
             if (confirmedOrder != null) {
                 // Live region: a screen reader announces the confirmation as soon as it appears.
                 Column(modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
@@ -60,12 +67,13 @@ fun CheckoutScreen(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.semantics { heading() }
                     )
-                    Text("You earned ${confirmedOrder.points} rewards points.", fontWeight = FontWeight.SemiBold)
+                    Text("You earned ${confirmedOrder.punchesEarned} rewards points.", fontWeight = FontWeight.SemiBold)
                     Text("This is a mock order simulation -- sample inventory has been updated.")
                 }
+                // Back to **Reawards** (Removed by David Crosen) Home
                 Spacer(modifier = Modifier.height(20.dp))
                 Button(onClick = onNewOrder, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    Text("Back to Rewards Home")
+                    Text("Back to Home")
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(onClick = onViewHistory, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {

@@ -1,3 +1,11 @@
+/*
+ * HomeScreen.kt
+ * BruinCafeApp
+ *
+ * Modified by David Crosen:
+ * - Updated rewards card text and descriptions to reflect the new punch card rules ($7 spent = 1 punch, 10 punches = free lunch).
+ */
+
 package com.bruincafe.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -30,8 +38,8 @@ import com.bruincafe.app.data.Rewards
 import com.bruincafe.app.data.RewardsStatus
 
 /**
- * Screen S-01: Home = Rewards home.
- * Shows the customer's points and progress first, then the main places to go.
+ * Screen S-01: Home
+ * Shows the customer's punches and progress first, then the main places to go.
  * The whole screen scrolls, so it stays usable at "Extra large" text sizes.
  */
 @Composable
@@ -39,6 +47,7 @@ fun HomeScreen(
     rewards: RewardsStatus,
     onOrder: () -> Unit,
     onCafeHoliday: () -> Unit,
+    onViewCart: () -> Unit,
     onOrderHistory: () -> Unit,
     onAccessibility: () -> Unit,
     onStaffLogin: () -> Unit
@@ -53,18 +62,21 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             RewardsCard(rewards)
-
+           // New Rewards system (Added by David Crosen)
             Text(
-                "Earn ${Rewards.POINTS_PER_ITEM} points for every item you order. " +
-                    "Every ${Rewards.POINTS_PER_REWARD} points unlocks a reward.",
+                "Earn 1 punch for every $7 spent on your order. " +
+                        "10 punches unlocks a free lunch!",
                 style = MaterialTheme.typography.bodyMedium
             )
-// David Changed "Order Now" to "Order Lunch"
+            // David Changed "Order Lunch" to "Order Lunch/Breakfast"
             Button(onClick = onOrder, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                Text("Order Lunch")
+                Text("Order Lunch/Breakfast")
             }
             OutlinedButton(onClick = onCafeHoliday, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Text("Café & Holiday Menu")
+            }
+            OutlinedButton(onClick = onViewCart, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                Text("View Cart")
             }
             OutlinedButton(onClick = onOrderHistory, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Text("Order History")
@@ -82,10 +94,10 @@ fun HomeScreen(
 @Composable
 private fun RewardsCard(rewards: RewardsStatus) {
     val scheme = MaterialTheme.colorScheme
-    val unlocked = if (rewards.rewardsEarned == 1) "1 reward unlocked" else "${rewards.rewardsEarned} rewards unlocked"
+    val unlocked = if (rewards.freeLunchesEarned == 1) "1 free lunch unlocked" else "${rewards.freeLunchesEarned} free lunches unlocked"
     // One clear sentence for screen readers instead of five separate fragments.
-    val spoken = "Bruin Rewards. ${rewards.totalPoints} points. " +
-        "${rewards.pointsToNext} points until your next reward. $unlocked."
+    val spoken = "Bruin Rewards Punch Card. ${rewards.totalPunches} punches. " +
+            "${rewards.punchesToNext} punches until your next free lunch. $unlocked."
 
     Card(
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = spoken },
@@ -94,12 +106,12 @@ private fun RewardsCard(rewards: RewardsStatus) {
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                "Bruin Rewards",
+                "Bruin Rewards Punch Card",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { heading() }
             )
             Text(
-                "${rewards.totalPoints} points",
+                "${rewards.totalPunches} Punches",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -109,7 +121,7 @@ private fun RewardsCard(rewards: RewardsStatus) {
                 color = scheme.onPrimary,
                 trackColor = scheme.onPrimary.copy(alpha = 0.35f)
             )
-            Text("${rewards.pointsToNext} points until your next reward")
+            Text("${rewards.punchesToNext} punches until your next free lunch")
             Text(unlocked, fontWeight = FontWeight.SemiBold)
         }
     }

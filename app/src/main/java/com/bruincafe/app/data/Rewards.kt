@@ -1,3 +1,12 @@
+/*
+ * Rewards.kt
+ * BruinCafeApp
+ *
+ * Modified by David Crosen:
+ * - Updated rewards rule: Exactly 1 punch earned per completed order.
+ * - 10 punches = 1 free lunch.
+ */
+
 package com.bruincafe.app.data
 
 /** One line of a past order, stored by name so history still reads correctly if the menu changes. */
@@ -11,38 +20,34 @@ data class Order(
     val lines: List<OrderLineRecord>
 ) {
     val itemCount: Int get() = lines.sumOf { it.quantity }
-    val points: Int get() = Rewards.pointsForItems(itemCount)
+
+    // Exactly 1 punch earned per completed order
+    val punchesEarned: Int get() = 1
 }
 
 data class RewardsStatus(
-    val totalPoints: Int,
-    val rewardsEarned: Int,       // how many full reward thresholds have been reached
-    val pointsIntoCurrent: Int,   // progress toward the next reward
-    val pointsToNext: Int,
+    val totalPunches: Int,
+    val freeLunchesEarned: Int,   // how many full reward thresholds have been reached
+    val punchesIntoCurrent: Int,  // progress toward the next reward card
+    val punchesToNext: Int,       // punches remaining until next free lunch
     val progress: Float           // 0f..1f for a progress bar
 )
 
-/**
- * Rewards rules. Points are DERIVED from order history (nothing extra is stored),
- * so the rewards balance and the order history can never disagree.
- *
- *   10 points per item ordered, 100 points = 1 reward (e.g. a free café item).
- */
 object Rewards {
-    const val POINTS_PER_ITEM = 10
-    const val POINTS_PER_REWARD = 100
-
-    fun pointsForItems(itemCount: Int): Int = itemCount.coerceAtLeast(0) * POINTS_PER_ITEM
+    private const val PUNCHES_PER_FREE_LUNCH = 10
 
     fun status(orders: List<Order>): RewardsStatus {
-        val total = orders.sumOf { it.points }
-        val into = total % POINTS_PER_REWARD
+        val totalPunches = orders.sumOf { it.punchesEarned }
+        val freeLunchesEarned = totalPunches / PUNCHES_PER_FREE_LUNCH
+        val punchesIntoCurrent = totalPunches % PUNCHES_PER_FREE_LUNCH
+        val punchesToNext = PUNCHES_PER_FREE_LUNCH - punchesIntoCurrent
+
         return RewardsStatus(
-            totalPoints = total,
-            rewardsEarned = total / POINTS_PER_REWARD,
-            pointsIntoCurrent = into,
-            pointsToNext = POINTS_PER_REWARD - into,
-            progress = into.toFloat() / POINTS_PER_REWARD
+            totalPunches = totalPunches,
+            freeLunchesEarned = freeLunchesEarned,
+            punchesIntoCurrent = punchesIntoCurrent,
+            punchesToNext = punchesToNext,
+            progress = punchesIntoCurrent.toFloat() / PUNCHES_PER_FREE_LUNCH.toFloat()
         )
     }
 }
