@@ -60,6 +60,16 @@ object CafeRepository {
 
     // ---- Local inventory changes (instant); pushInventory() syncs them ---------
 
+    fun allItemsAt(locationId: String): List<MenuItem> = store.allItemsAt(locationId)
+
+    /** Inventory for one location, optionally narrowed to a kind ("meal" / "cafe" / "holiday"), sorted by name. */
+    fun inventoryFor(locationId: String, kind: String?): List<InventoryItem> =
+        inventory.filter { it.locationId == locationId && (kind == null || it.itemKind == kind) }
+            .sortedBy { it.itemName }
+
+    /** Staff adjust: positive = restock, negative = un-stock (waste / recount). Never goes below zero. */
+    fun adjustStock(itemId: String, delta: Int) = restock(itemId, delta)
+
     fun restock(itemId: String, addQuantity: Int) {
         val row = inventory.firstOrNull { it.itemId == itemId } ?: return
         row.quantityOnHand = (row.quantityOnHand + addQuantity).coerceAtLeast(0)
@@ -67,7 +77,7 @@ object CafeRepository {
 
     /** Decrements inventory per cart line; returns false (changing nothing) if any line would go below zero. */
     fun placeMockOrder(lines: List<CartLine>): Boolean {
-        // Items with no inventory row (made-to-order café items) are untracked and always orderable.
+        // Items with no inventory row are untracked and always orderable; every café/holiday item now has a row.
         val wouldGoNegative = lines.any { line ->
             val row = inventory.firstOrNull { it.itemId == line.item.id }
             row != null && row.quantityOnHand < line.quantity
@@ -96,15 +106,21 @@ object CafeRepository {
             check(locations.isNotEmpty() && periods.isNotEmpty() && rows.isNotEmpty()) {
                 "Supabase tables are empty - run supabase/schema_and_seed.sql"
             }
-            val itemsById = rows.associate { it.item.id to it.item }
-            val newInventory = inv.mapNotNull { r ->
-                itemsById[r.itemId]?.let {
-                    InventoryItem(r.itemId, it.name, it.locationId, r.quantity, r.threshold)
-                }
-            }.toMutableList()
-
             // If the special_items table is missing/unreachable, keep the built-in café + holiday items.
             val special = runCatching { SupabaseApi.fetchSpecialItems() }.getOrElse { MockData.specialItems }
+
+            // Inventory rows can belong to a regular menu item OR a café/holiday item.
+            val itemsById = rows.associate { it.item.id to it.item } + special.associate { it.item.id to it.item }
+            val newInventory = inv.mapNotNull { r ->
+                itemsById[r.itemId]?.let {
+                    val kind = r.itemKind ?: when (it.mealPeriod) {
+                        "cafe" -> InventoryItem.KIND_CAFE
+                        "holiday" -> InventoryItem.KIND_HOLIDAY
+                        else -> InventoryItem.KIND_MEAL
+                    }
+                    InventoryItem(r.itemId, it.name, it.locationId, r.quantity, r.threshold, kind)
+                }
+            }.toMutableList()
 
             store = MenuStore.fromRows(locations, periods, rows, special)
             inventory = newInventory

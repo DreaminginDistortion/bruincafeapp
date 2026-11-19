@@ -14,7 +14,7 @@ data class MenuRow(
 )
 
 /** One row of the `inventory` table. */
-data class InventoryRow(val itemId: String, val quantity: Int, val threshold: Int)
+data class InventoryRow(val itemId: String, val quantity: Int, val threshold: Int, val itemKind: String? = null)
 
 /**
  * Immutable snapshot of everything the menu screens need, plus the menu rules.
@@ -34,6 +34,12 @@ data class MenuStore(
     val special: List<SpecialItem> = emptyList()  // café + holiday items
 ) {
     fun weekMenu(locationId: String): List<DayMenu> = weeks[locationId].orEmpty()
+
+    /** Every orderable item known for a location (daily + dated + café/holiday), for Reorder lookups. */
+    fun allItemsAt(locationId: String): List<MenuItem> =
+        daily[locationId].orEmpty() +
+            weekMenu(locationId).flatMap { it.items } +
+            special.filter { it.item.locationId == locationId }.map { it.item }
 
     fun closedMessage(locationId: String, date: String): String? =
         weekMenu(locationId).firstOrNull { it.date == date && it.isClosed }

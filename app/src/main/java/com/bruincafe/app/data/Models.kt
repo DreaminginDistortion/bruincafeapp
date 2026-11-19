@@ -68,8 +68,22 @@ data class InventoryItem(
     val itemName: String,
     val locationId: String,
     var quantityOnHand: Int,
-    val lowStockThreshold: Int = 5
+    val lowStockThreshold: Int = 5,
+    /** "meal" (regular menu), "cafe" or "holiday" -- mirrors inventory.item_kind in Supabase. */
+    val itemKind: String = KIND_MEAL
 ) {
+    companion object {
+        const val KIND_MEAL = "meal"
+        const val KIND_CAFE = "cafe"
+        const val KIND_HOLIDAY = "holiday"
+        val KINDS = listOf(KIND_MEAL, KIND_CAFE, KIND_HOLIDAY)
+        fun kindLabel(kind: String) = when (kind) {
+            KIND_CAFE -> "Café"
+            KIND_HOLIDAY -> "Holiday"
+            else -> "Regular"
+        }
+    }
+
     val status: StockStatus
         get() = when {
             quantityOnHand <= 0 -> StockStatus.SOLD_OUT

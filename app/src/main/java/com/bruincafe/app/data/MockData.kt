@@ -208,15 +208,36 @@ object MockData {
             "tc-fri-pizza" to 14
         )
 
-        return all.map { item ->
+        val regular = all.map { item ->
             InventoryItem(
                 itemId = item.id,
                 itemName = item.name,
                 locationId = item.locationId,
                 quantityOnHand = startingQty[item.id] ?: 10,
-                lowStockThreshold = 5
+                lowStockThreshold = 5,
+                itemKind = InventoryItem.KIND_MEAL
             )
-        }.toMutableList()
+        }
+
+        // Café + holiday items are stock-tracked too (same quantities as the Supabase seed).
+        val specialQty: Map<String, Int> = mapOf(
+            "hq-cafe-espresso" to 50, "hq-cafe-latte" to 40, "hq-cafe-coldbrew" to 25, "hq-cafe-hotchoc" to 4,
+            "tc-cafe-drip" to 60, "tc-cafe-icedlatte" to 30, "tc-cafe-chai" to 0,
+            "hq-hol-psl" to 25, "hq-hol-cider" to 4, "tc-hol-psl" to 0,
+            "hq-hol-pie" to 12, "hq-hol-turkeywrap" to 18, "tc-hol-turkeywrap" to 15,
+            "hq-hol-mocha" to 30, "hq-hol-gingerbread" to 24, "tc-hol-mocha" to 22
+        )
+        val special = specialItems.map { s ->
+            InventoryItem(
+                itemId = s.item.id,
+                itemName = s.item.name,
+                locationId = s.item.locationId,
+                quantityOnHand = specialQty[s.item.id] ?: 10,
+                lowStockThreshold = 5,
+                itemKind = if (s.item.id.contains("-hol-")) InventoryItem.KIND_HOLIDAY else InventoryItem.KIND_CAFE
+            )
+        }
+        return (regular + special).toMutableList()
     }
 
     // Very small mock staff directory -- any of these log in with any password

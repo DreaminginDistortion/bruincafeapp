@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -32,19 +31,21 @@ import androidx.compose.ui.unit.dp
 import com.bruincafe.app.data.InventoryItem
 
 /** Screen S-09: Restock Simulation. Staff enter a quantity and confirm; inventory updates live. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RestockSimulationScreen(
     item: InventoryItem,
     currentQuantity: Int,
     onConfirmRestock: (Int) -> Unit,
+    onConfirmUnstock: (Int) -> Unit,
     onBack: () -> Unit
 ) {
     var addQty by remember { mutableStateOf(10) }
     var justConfirmed by remember { mutableStateOf(false) }
+    var unstockMode by remember { mutableStateOf(false) }
+    val verb = if (unstockMode) "Un-stock" else "Restock"
 
     Scaffold(
-        topBar = { TopAppBar(title = { ScreenTitle("Restock: ${item.itemName}") }, navigationIcon = { BackButton(onBack) }) }
+        topBar = { TopAppBar(title = { ScreenTitle("Stock: ${item.itemName}") }, navigationIcon = { BackButton(onBack) }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -53,10 +54,15 @@ fun RestockSimulationScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
-            Text("Current quantity on hand: $currentQuantity", style = MaterialTheme.typography.titleMedium)
+            Text("${InventoryItem.kindLabel(item.itemKind)} item · current quantity on hand: $currentQuantity", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SelectableChip("Restock (add)", !unstockMode, { unstockMode = false; justConfirmed = false })
+                SelectableChip("Un-stock (remove)", unstockMode, { unstockMode = true; justConfirmed = false })
+            }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "Simulated restock amount: $addQty",
+                "$verb amount: $addQty",
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }   // announces each change
             )
             Row(
@@ -79,11 +85,11 @@ fun RestockSimulationScreen(
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = {
-                    onConfirmRestock(addQty)
+                    if (unstockMode) onConfirmUnstock(addQty) else onConfirmRestock(addQty)
                     justConfirmed = true
                 },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-            ) { Text("Confirm Restock") }
+            ) { Text("Confirm $verb") }
             if (justConfirmed) {
                 Text(
                     "Inventory updated: now $currentQuantity on hand.",

@@ -56,6 +56,7 @@ fun BruinCafeNavGraph(viewModel: CafeViewModel) {
     var selectedItem by remember { mutableStateOf<MenuItem?>(null) }
     var selectedInventoryRow by remember { mutableStateOf<InventoryItem?>(null) }
     var staffLocationId by remember { mutableStateOf("hq") }
+    var staffKind by remember { mutableStateOf(InventoryItem.KIND_MEAL) }
 
     val currentLocationId = uiState.selectedLocationId ?: uiState.locations.first().id
     val goBack: () -> Unit = { navController.popBackStack() }
@@ -151,6 +152,8 @@ fun BruinCafeNavGraph(viewModel: CafeViewModel) {
                 onRemove = viewModel::removeFromCart,
                 onCheckout = { navController.navigate(Routes.CHECKOUT) },
                 onKeepBrowsing = goBack,
+                cartMessage = uiState.cartMessage,
+                onCartMessageShown = viewModel::clearCartMessage,
                 onBack = goBack
             )
         }
@@ -174,7 +177,12 @@ fun BruinCafeNavGraph(viewModel: CafeViewModel) {
         }
 
         composable(Routes.ORDER_HISTORY) {
-            OrderHistoryScreen(orders = uiState.orders, rewards = uiState.rewards, onBack = goBack)
+            OrderHistoryScreen(
+                orders = uiState.orders,
+                rewards = uiState.rewards,
+                onReorder = { order -> if (viewModel.reorder(order)) navController.navigate(Routes.CART) },
+                onBack = goBack
+            )
         }
 
         composable(Routes.ACCESSIBILITY) {
@@ -200,7 +208,12 @@ fun BruinCafeNavGraph(viewModel: CafeViewModel) {
                 locations = uiState.locations,
                 selectedLocationId = staffLocationId,
                 onLocationChange = { staffLocationId = it },
-                inventory = CafeRepository.inventoryFor(staffLocationId),
+                inventory = CafeRepository.inventoryFor(staffLocationId, staffKind),
+                selectedKind = staffKind,
+                onKindChange = { staffKind = it },
+                onQuickAdjust = { row, delta ->
+                    if (delta >= 0) viewModel.restock(row.itemId, delta) else viewModel.unstock(row.itemId, -delta)
+                },
                 onSelectItemToRestock = {
                     selectedInventoryRow = it
                     navController.navigate(Routes.RESTOCK)
@@ -219,6 +232,7 @@ fun BruinCafeNavGraph(viewModel: CafeViewModel) {
                     item = row,
                     currentQuantity = CafeRepository.quantityOnHand(row.itemId),
                     onConfirmRestock = { qty -> viewModel.restock(row.itemId, qty) },
+                    onConfirmUnstock = { qty -> viewModel.unstock(row.itemId, qty) },
                     onBack = goBack
                 )
             }

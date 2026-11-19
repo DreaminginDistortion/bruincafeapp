@@ -131,7 +131,10 @@ object SupabaseApi {
         val arr = JSONArray(request("inventory?select=*", "GET"))
         return List(arr.length()) { i ->
             val o = arr.getJSONObject(i)
-            InventoryRow(o.getString("item_id"), o.getInt("quantity_on_hand"), o.optInt("low_stock_threshold", 5))
+            InventoryRow(
+                o.getString("item_id"), o.getInt("quantity_on_hand"), o.optInt("low_stock_threshold", 5),
+                if (o.isNull("item_kind")) null else o.optString("item_kind")
+            )
         }
     }
 

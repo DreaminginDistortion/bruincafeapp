@@ -214,3 +214,86 @@ insert into public.special_items
   ('tc-hol-mocha',       'tech_center', 'holiday', 'Winter Holidays', 'Peppermint Mocha', 'Espresso, chocolate, peppermint, and whipped cream.', 'entree', true, '2026-12-01', '2026-12-24', 1)
 on conflict (id) do nothing;
 -- To schedule a new holiday menu: insert rows with kind='holiday' and the active_from / active_until dates.
+
+
+-- =====================================================================
+-- 6. INVENTORY FOR CAFÉ + HOLIDAY ITEMS (linked to special_items)
+--    Run AFTER sections 1-5. Safe to re-run.
+--    inventory.item_id may now point at menu_items OR special_items, so the
+--    old foreign key is replaced by a validation trigger. item_kind
+--    ('meal' | 'cafe' | 'holiday') is set by the trigger and is indexed so the
+--    staff dashboard can group Regular / Café / Holiday cleanly.
+-- =====================================================================
+alter table public.inventory drop constraint if exists inventory_item_id_fkey;
+alter table public.inventory
+  add column if not exists item_kind text not null default 'meal'
+  check (item_kind in ('meal','cafe','holiday'));
+create index if not exists inventory_item_kind_idx on public.inventory (item_kind);
+
+create or replace function public.inventory_validate_item()
+returns trigger language plpgsql set search_path = '' as $$
+declare
+  in_menu      boolean;
+  special_kind text;
+begin
+  select exists (select 1 from public.menu_items where id = new.item_id) into in_menu;
+  select kind into special_kind from public.special_items where id = new.item_id;
+  if in_menu and special_kind is not null then
+    raise exception 'item id % exists in both menu_items and special_items', new.item_id;
+  end if;
+  if not in_menu and special_kind is null then
+    raise exception 'inventory item_id % was not found in menu_items or special_items', new.item_id;
+  end if;
+  new.item_kind := case when in_menu then 'meal' else special_kind end;
+  return new;
+end; $$;
+
+drop trigger if exists inventory_validate_item on public.inventory;
+create trigger inventory_validate_item
+  before insert or update of item_id on public.inventory
+  for each row execute function public.inventory_validate_item();
+
+create or replace function public.inventory_cleanup_for_deleted_item()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  delete from public.inventory where item_id = old.id;
+  return old;
+end; $$;
+
+drop trigger if exists menu_items_inventory_cleanup on public.menu_items;
+create trigger menu_items_inventory_cleanup after delete on public.menu_items
+  for each row execute function public.inventory_cleanup_for_deleted_item();
+drop trigger if exists special_items_inventory_cleanup on public.special_items;
+create trigger special_items_inventory_cleanup after delete on public.special_items
+  for each row execute function public.inventory_cleanup_for_deleted_item();
+
+-- Seed one inventory row per special item (same quantities the app's mock data uses).
+insert into public.inventory (item_id, quantity_on_hand, low_stock_threshold) values
+  ('hq-cafe-espresso',50,5),('hq-cafe-latte',40,5),('hq-cafe-coldbrew',25,5),('hq-cafe-hotchoc',4,5),
+  ('tc-cafe-drip',60,5),('tc-cafe-icedlatte',30,5),('tc-cafe-chai',0,5),
+  ('hq-hol-psl',25,5),('hq-hol-cider',4,5),('tc-hol-psl',0,5),
+  ('hq-hol-pie',12,5),('hq-hol-turkeywrap',18,5),('tc-hol-turkeywrap',15,5),
+  ('hq-hol-mocha',30,5),('hq-hol-gingerbread',24,5),('tc-hol-mocha',22,5)
+on conflict (item_id) do nothing;
+
+-- Staff-dashboard views (RLS of the caller applies).
+create or replace view public.inventory_overview with (security_invoker = true) as
+select i.item_id, i.item_kind,
+       coalesce(m.location_id, s.location_id) as location_id,
+       coalesce(m.name, s.name) as item_name,
+       m.meal_period, s.holiday_name, s.active_from, s.active_until, s.made_to_order,
+       i.quantity_on_hand, i.low_stock_threshold,
+       case when i.quantity_on_hand <= 0 then 'sold_out'
+            when i.quantity_on_hand <= i.low_stock_threshold then 'low_stock'
+            else 'in_stock' end as stock_status
+from public.inventory i
+left join public.menu_items m on m.id = i.item_id
+left join public.special_items s on s.id = i.item_id;
+
+create or replace view public.inventory_summary with (security_invoker = true) as
+select location_id, item_kind, count(*) as items,
+       count(*) filter (where stock_status = 'low_stock') as low_stock,
+       count(*) filter (where stock_status = 'sold_out') as sold_out
+from public.inventory_overview group by location_id, item_kind;
+
+grant select on public.inventory_overview, public.inventory_summary to anon, authenticated;

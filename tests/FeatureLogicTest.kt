@@ -49,4 +49,20 @@ fun main() {
 
     println(if (failures == 0) "\nALL FEATURE TESTS PASSED" else "\n$failures FAILED")
     if (failures > 0) System.exit(1)
+
+    // ---- inventory covers regular + café + holiday items (linked to special_items) ----
+    val inv = MockData.inventorySeed()
+    check("every special item has an inventory row", MockData.specialItems.all { s -> inv.any { it.itemId == s.item.id } })
+    check("inventory ids are unique", inv.map { it.itemId }.distinct().size == inv.size)
+    check("kinds: 16 special rows (7 cafe + 9 holiday)",
+        inv.count { it.itemKind == InventoryItem.KIND_CAFE } == 7 && inv.count { it.itemKind == InventoryItem.KIND_HOLIDAY } == 9)
+    check("regular rows are 'meal'", inv.filter { it.itemKind == InventoryItem.KIND_MEAL }.size == inv.size - 16)
+    check("kind matches special item type",
+        MockData.specialItems.all { s ->
+            inv.first { it.itemId == s.item.id }.itemKind == (if (s.item.mealPeriod == "holiday") InventoryItem.KIND_HOLIDAY else InventoryItem.KIND_CAFE)
+        })
+    check("sold-out café/holiday seeds", inv.first { it.itemId == "tc-cafe-chai" }.status == StockStatus.SOLD_OUT &&
+        inv.first { it.itemId == "tc-hol-psl" }.status == StockStatus.SOLD_OUT)
+    check("low-stock seeds", inv.first { it.itemId == "hq-cafe-hotchoc" }.status == StockStatus.LOW_STOCK)
+    check("kind labels", InventoryItem.kindLabel("meal") == "Regular" && InventoryItem.kindLabel("cafe") == "Café" && InventoryItem.kindLabel("holiday") == "Holiday")
 }

@@ -208,3 +208,16 @@ working unmodified — screens never talk to `MockData` directly.
   a live weekly menu is being published on a rolling basis.
 - Add persistence for the cart and staff session (currently in-memory only,
   resets on process death) via DataStore.
+
+## Inventory categories (Regular / Café / Holiday)
+
+Every item in `menu_items` **and** `special_items` has an `inventory` row, so quantities
+and sold-out work for café and holiday items too. `inventory.item_kind` (`meal` | `cafe` | `holiday`)
+is set automatically by a DB trigger and indexed; the `inventory_overview` and `inventory_summary`
+views join names/locations for dashboards. In the app, the staff Inventory screen (S-08) has
+Regular / Café / Holiday tabs plus a location filter, quick −1/+1 buttons, and S-09 has separate
+Restock (add) and Un-stock (remove) modes. Run section 6 of `supabase/schema_and_seed.sql` on existing projects.
+
+## Reorder (S-10)
+Each order card has a Reorder button: the order's items are matched by name at that location,
+sold-out/removed items are skipped, quantities are capped to stock, and the cart opens with a message.

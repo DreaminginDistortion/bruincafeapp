@@ -13,13 +13,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -28,18 +30,22 @@ import androidx.compose.ui.unit.dp
 import com.bruincafe.app.data.CartLine
 
 /** Screen S-05: Cart. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(
     cart: List<CartLine>,
     onRemove: (String) -> Unit,
     onCheckout: () -> Unit,
     onKeepBrowsing: () -> Unit,
+    cartMessage: String?,
+    onCartMessageShown: () -> Unit,
     onBack: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
+    val snackbarHost = remember { SnackbarHostState() }
+    CartMessageEffect(cartMessage, snackbarHost, onCartMessageShown)   // shows Reorder results
     val totalItems = cart.sumOf { it.quantity }
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = { TopAppBar(title = { ScreenTitle("Your Cart") }, navigationIcon = { BackButton(onBack) }) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {

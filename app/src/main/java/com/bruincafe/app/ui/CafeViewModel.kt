@@ -129,6 +129,44 @@ class CafeViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Reorder (S-10): rebuilds the cart from a past order. Orders only store item NAMES, so each
+     * line is matched by name against the order's location. Items that no longer exist or are
+     * sold out are skipped, quantities are capped to what is in stock, and the result is
+     * reported in cartMessage. Returns true if anything was added to the cart.
+     */
+    fun reorder(order: Order): Boolean {
+        val state = _uiState.value
+        val loc = state.locations.firstOrNull { it.displayName == order.locationName }
+            ?: state.locations.firstOrNull { it.id == state.selectedLocationId }
+            ?: return false
+        val known = CafeRepository.allItemsAt(loc.id)
+        val lines = mutableListOf<CartLine>()
+        val skipped = mutableListOf<String>()
+        order.lines.forEach { rec ->
+            val item = known.firstOrNull { it.name == rec.name }
+            if (item == null || CafeRepository.stockStatus(item.id) == StockStatus.SOLD_OUT) {
+                skipped += rec.name
+            } else {
+                val cap = if (CafeRepository.isTracked(item.id)) CafeRepository.quantityOnHand(item.id) else rec.quantity
+                lines += CartLine(item, minOf(rec.quantity, cap))
+            }
+        }
+        val message = when {
+            lines.isEmpty() -> "None of those items are available right now."
+            skipped.isEmpty() -> "Added your previous order to the cart."
+            else -> "Added your previous order. Unavailable and skipped: ${skipped.joinToString(", ")}."
+        }
+        _uiState.update {
+            it.copy(
+                selectedLocationId = loc.id,
+                cart = if (lines.isEmpty()) it.cart else lines,
+                cartMessage = message
+            )
+        }
+        return lines.isNotEmpty()
+    }
+
     fun clearCartMessage() { _uiState.update { it.copy(cartMessage = null) } }
 
     fun removeFromCart(itemId: String) {
@@ -175,6 +213,13 @@ class CafeViewModel : ViewModel() {
     }
 
     fun staffLogout() { _uiState.update { it.copy(isStaffLoggedIn = false) } }
+
+    /** Staff un-stock (waste / recount): removes units, never below zero. */
+    fun unstock(itemId: String, quantity: Int) {
+        CafeRepository.adjustStock(itemId, -quantity)
+        _inventoryVersion.update { it + 1 }
+        pushInventory(listOf(itemId))
+    }
 
     fun restock(itemId: String, quantity: Int) {
         CafeRepository.restock(itemId, quantity)

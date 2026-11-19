@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -56,7 +55,6 @@ private val timeChips: List<Pair<String, LocalTime?>> = listOf(
  * screen and can never be pushed off by the content above it (the "cart not showing
  * on the HQ page" bug). Adding an item posts a snackbar, which screen readers announce.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeeklyMenuScreen(
     location: CafeLocation,
